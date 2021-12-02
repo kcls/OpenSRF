@@ -43,6 +43,7 @@ sub new {
     $self->{routers}        = []; # list of registered routers
     $self->{active_list}    = []; # list of active children
     $self->{idle_list}      = []; # list of idle children
+    $self->{zombie_list}    = []; # list of reaped children to clean up
     $self->{sighup_pending} = [];
     $self->{pid_map}        = {}; # map of child pid to child for cleaner access
     $self->{sig_pipe}       = 0;  # true if last syswrite failed
@@ -158,6 +159,7 @@ sub run {
     while (1) {
 
         $self->check_status;
+        $self->squash_zombies;
         $self->{child_died} = 0;
 
         my $msg = $self->{osrf_handle}->process($wait_time, $self->{service});
@@ -221,6 +223,20 @@ sub run {
             }
         }
     }
+}
+
+# ----------------------------------------------------------------
+# Finish destroying objects for reaped children
+# ----------------------------------------------------------------
+sub squash_zombies {
+    my $self = shift;
+
+    my $squashed = 0;
+    while (my $child = shift @{$self->{zombie_list}}) {
+        delete $child->{$_} for keys %$child; # destroy with a vengeance
+        $squashed++;
+    }
+    $chatty and $logger->internal("server: squashed $squashed zombies");
 }
 
 # ----------------------------------------------------------------
@@ -429,7 +445,12 @@ sub reap_children {
 
         $self->{num_children}--;
         delete $self->{pid_map}->{$pid};
-        delete $child->{$_} for keys %$child; # destroy with a vengeance
+
+        # since we may be in the middle of check_status(),
+        # stash the remnants of the child for later cleanup
+        # after check_status() has finished; otherwise, we may crash
+        # the parent with a "Use of freed value in iteration" error
+        push @{ $self->{zombie_list} }, $child;
     }
 
     $self->spawn_children unless $shutdown;
