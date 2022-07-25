@@ -340,7 +340,14 @@ sub check_status {
 
         # refresh the read_set handles in case we lost a child in the previous iteration
         my $read_set = IO::Select->new;
-        $read_set->add($_->{pipe_to_child}) for @{$self->{active_list}};
+
+        # Copy the array so there's no chance we try to reference a
+        # free'd array ref in the loop below as a result of child
+        # process maintenance.
+        my @active = @{$self->{active_list}};
+
+        $read_set->add($_->{pipe_to_child}) for
+            grep {$_ && $_->{pipe_to_child}} @active;
 
         if(my @handles = $read_set->can_read(($block) ? undef : 0)) {
             my $pid = '';
