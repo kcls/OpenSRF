@@ -166,8 +166,6 @@ sub run {
 
         my $msg = shift(@max_children_msg_queue);
 
-        # no pending message, so wait for the next one forever
-        $from_network = $wait_time = -1 if (!$msg);
         $msg ||= $self->{osrf_handle}->process($wait_time);
 
         !$from_network and $chatty and $logger->debug("server: attempting to process previously queued message");
