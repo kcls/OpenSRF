@@ -21,7 +21,7 @@ use OpenSRF::Utils::Config;
 use OpenSRF::Transport::PeerHandle;
 use OpenSRF::Utils::SettingsClient;
 use OpenSRF::Utils::Logger qw($logger);
-use OpenSRF::Transport::SlimJabber::Client;
+use OpenSRF::Transport::Redis::Client;
 use Encode;
 use POSIX qw/:sys_wait_h :errno_h/;
 use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
@@ -132,7 +132,7 @@ sub handle_sighup {
 }
 
 # ----------------------------------------------------------------
-# Waits on the jabber socket for inbound data from the router.
+# Waits on the redis socket for inbound data from the router.
 # Each new message is passed off to a child process for handling.
 # At regular intervals, wake up for min/max spare child maintenance
 # ----------------------------------------------------------------
@@ -259,30 +259,12 @@ sub kill_child {
 }
 
 # ----------------------------------------------------------------
-# Jabber connection inbound message arrive on.
+# Redis connection inbound message arrive on.
 # ----------------------------------------------------------------
 sub build_osrf_handle {
     my $self = shift;
-
-    my $conf = OpenSRF::Utils::Config->current;
-    my $username = $conf->bootstrap->username;
-    my $password = $conf->bootstrap->passwd;
-    my $domain = $conf->bootstrap->domain;
-    my $port = $conf->bootstrap->port;
-    my $resource = $self->{service} . '_listener_' . $conf->env->hostname;
-
-    $logger->debug("server: inbound connecting as $username\@$domain/$resource on port $port");
-
     $self->{osrf_handle} =
-        OpenSRF::Transport::SlimJabber::Client->new(
-            username => $username,
-            resource => $resource,
-            password => $password,
-            host => $domain,
-            port => $port,
-        );
-
-    $self->{osrf_handle}->initialize;
+        OpenSRF::Transport::Redis::Client->new($self->{service});
 }
 
 
@@ -291,11 +273,11 @@ sub build_osrf_handle {
 # ----------------------------------------------------------------
 sub write_child {
     my($self, $child, $msg) = @_;
-    my $xml = encode_utf8(decode_utf8($msg->to_xml));
+    my $json = $msg->to_json;
 
     # tell the child how much data to expect, minus the header
     my $write_size;
-    {use bytes; $write_size = length($xml)}
+    {use bytes; $write_size = length($json)}
     $write_size = sprintf("%*s", WRITE_PIPE_DATA_SIZE, $write_size);
 
     for (0..2) {
@@ -312,12 +294,12 @@ sub write_child {
         # so the lack of a pid means the child is dead.
         if (!$child->{pid}) {
             $logger->error("server: child is dead in write_child(). ".
-                "unable to send message: $xml");
+                "unable to send message: $json");
             return; # avoid syswrite crash
         }
 
         # send message to child data pipe
-        syswrite($child->{pipe_to_child}, $write_size . $xml);
+        syswrite($child->{pipe_to_child}, $write_size . $json);
 
         last unless $self->{sig_pipe};
         $logger->error("server: got SIGPIPE writing to $child, retrying...");
@@ -533,11 +515,11 @@ sub register_routers {
 
                 my $name = $router->{name};
                 my $domain = $router->{domain};
-                push(@targets, "$name\@$domain/router");
+                push(@targets, "opensrf:router:$domain");
             }
 
         } else {
-            push(@targets, "$router_name\@$router/router");
+            push(@targets, "opensrf:router:$router");
         }
     }
 
@@ -545,7 +527,7 @@ sub register_routers {
         $logger->info("server: registering with router $_");
         $self->{osrf_handle}->send(
             to => $_,
-            body => 'registering',
+            body => '"registering"',
             router_command => 'register',
             router_class => $self->{service}
         );
@@ -566,7 +548,7 @@ sub unregister_routers {
         $logger->info("server: disconnecting from router $router");
         $self->{osrf_handle}->send(
             to => $router,
-            body => "unregistering",
+            body => '"unregistering"',
             router_command => "unregister",
             router_class => $self->{service}
         );
@@ -580,7 +562,7 @@ use warnings;
 use OpenSRF::Transport;
 use OpenSRF::Application;
 use OpenSRF::Transport::PeerHandle;
-use OpenSRF::Transport::SlimJabber::XMPPMessage;
+use OpenSRF::Transport::Redis::Message;
 use OpenSRF::Utils::Logger qw($logger);
 use OpenSRF::DomainObject::oilsResponse qw/:status/;
 use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
@@ -613,7 +595,7 @@ sub set_block {
 }
 
 # ----------------------------------------------------------------
-# Connects to Jabber and runs the application child_init
+# Connects to the bus and runs the application child_init
 # ----------------------------------------------------------------
 sub init {
     my $self = shift;
@@ -650,7 +632,7 @@ sub run {
 
         my $session = OpenSRF::Transport->handler(
             $self->{parent}->{service},
-            OpenSRF::Transport::SlimJabber::XMPPMessage->new(xml => $data)
+            OpenSRF::Transport::Redis::Message->new(json => $data)
         );
 
         my $recycle = $self->keepalive_loop($session);

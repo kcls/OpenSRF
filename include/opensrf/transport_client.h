@@ -11,6 +11,7 @@
 
 #include <time.h>
 #include <opensrf/transport_session.h>
+#include <opensrf/transport_connection.h>
 #include <opensrf/utils.h>
 #include <opensrf/log.h>
 
@@ -27,20 +28,25 @@ struct message_list_struct;
 	a Jabber ID for outgoing messages.
 */
 struct transport_client_struct {
-	transport_message* msg_q_head;   /**< Head of message queue */
-	transport_message* msg_q_tail;   /**< Tail of message queue */
-	transport_session* session;      /**< Manages lower-level message processing */
+    char* primary_domain;
+    char* service; // NULL if this is a standalone client.
+    char* service_address; // NULL if this is a standalone client.
+    osrfHash* connections;
+
+    int port;
+    char* username;
+    char* password;
+    transport_con* primary_connection;
+
 	int error;                       /**< Boolean: true if an error has occurred */
-	char* host;                      /**< Domain name or IP address of the Jabber server */
-	char* xmpp_id;                   /**< Jabber ID used for outgoing messages */
 };
 typedef struct transport_client_struct transport_client;
 
-transport_client* client_init( const char* server, int port, const char* unix_path, int component );
+transport_client* client_init(const char* server, 
+    int port, const char* username, const char* password);
 
-int client_connect( transport_client* client, 
-		const char* username, const char* password, const char* resource,
-		int connect_timeout, enum TRANSPORT_AUTH_TYPE auth_type );
+int client_connect_as_service(transport_client* client, const char* service);
+int client_connect(transport_client* client); 
 
 int client_disconnect( transport_client* client );
 
@@ -49,10 +55,14 @@ int client_free( transport_client* client );
 int client_discard( transport_client* client );
 
 int client_send_message( transport_client* client, transport_message* msg );
+int client_send_message_to(
+    transport_client* client, transport_message* msg, const char* recipient);
 
 int client_connected( const transport_client* client );
 
-transport_message* client_recv( transport_client* client, int timeout );
+transport_message* client_recv_stream(transport_client* client, int timeout, const char* stream);
+transport_message* client_recv(transport_client* client, int timeout);
+transport_message* client_recv_for_service(transport_client* client, int timeout);
 
 int client_sock_fd( transport_client* client );
 

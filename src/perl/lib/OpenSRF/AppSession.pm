@@ -208,18 +208,7 @@ sub last_sent_type {
 
 sub get_app_targets {
 	my $app = shift;
-
-	my $conf = OpenSRF::Utils::Config->current;
-	my $router_name = $conf->bootstrap->router_name || 'router';
-	my $domain = $conf->bootstrap->domain;
-	$logger->error("use of <domains/> is deprecated") if $conf->bootstrap->domains;
-
-	unless($router_name and $domain) {
-		throw OpenSRF::EX::Config 
-			("Missing router config information 'router_name' and 'domain'");
-	}
-
-    return ("$router_name\@$domain/$app");
+    return ("opensrf:service:$app");
 }
 
 sub stateless {
@@ -579,12 +568,24 @@ sub send {
 
 	} 
 	my $json = OpenSRF::Utils::JSON->perl2JSON(\@doc);
-	$logger->internal("AppSession sending doc: $json");
 
-	$self->{peer_handle}->send( 
-					to     => $self->remote_id,
-				   thread => $self->session_id,
-				   body   => $json );
+    my $recipient = $self->remote_id;
+
+    if ($self->endpoint == CLIENT and $self->state != CONNECTED) {
+        # Send new requests to our router
+        my $conf = OpenSRF::Utils::Config->current;
+        my $domain = $conf->bootstrap->domain;
+        $recipient = "opensrf:router:$domain";
+    }
+
+    $logger->internal("AppSession sending doc to=$recipient: $json");
+
+    $self->{peer_handle}->send_to( 
+        $recipient,
+        to     => $self->remote_id,
+        thread => $self->session_id,
+        body   => $json
+    );
 
 	if( $disconnect) {
 		$self->state( DISCONNECTED );
