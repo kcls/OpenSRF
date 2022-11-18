@@ -81,6 +81,7 @@ sub cleanup {
                 @{$self->{active_list}}." active children...");
 
             # block until a child is becomes available
+            $logger->info("waiting for child procs to clear in graceful shutdown");
             $self->check_status(1);
         }
         $logger->info("server: all clear for graceful shutdown");
@@ -154,7 +155,7 @@ sub run {
     my $wait_time = 1;
 
     # main server loop
-    while(1) {
+    while (1) {
 
         $self->check_status;
         $self->{child_died} = 0;
@@ -202,7 +203,19 @@ sub run {
 
                 # when we hit equilibrium, there's no need for regular
                 # maintenance, so set wait_time to 'forever'
-                $wait_time = -1 if 
+                #
+                # Avoid indefinite waiting here -- Redis client
+                # gracefully handles interrupts and immediately goes
+                # back to listening after the signal handler is
+                # complete.  In our case, the signal handler may include
+                # un-registering with routers, which requires the Redis
+                # client to wait for an ACK from the Redis server.
+                # However, it will never receive the ack because our
+                # client is already blocking on an BLPOP call wiating
+                # for a new request.  In future, we could replace
+                # signals with messages sent directly to listeners
+                # telling them to shutdown.
+                $wait_time = 3 if 
                     !$self->perform_idle_maintenance and # no maintenance performed this time
                     @{$self->{active_list}} == 0; # no active children 
             }
@@ -552,6 +565,7 @@ sub unregister_routers {
             router_command => "unregister",
             router_class => $self->{service}
         );
+        $logger->info("Disconnect sent to $router");
     }
 }
 
@@ -601,7 +615,7 @@ sub init {
     my $self = shift;
     my $service = $self->{parent}->{service};
     $0 = "OpenSRF Drone [$service]";
-    OpenSRF::Transport::PeerHandle->construct($service);
+    OpenSRF::Transport::PeerHandle->construct($service, 1);
     OpenSRF::Application->application_implementation->child_init
         if (OpenSRF::Application->application_implementation->can('child_init'));
 }

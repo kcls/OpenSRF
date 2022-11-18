@@ -18,9 +18,9 @@ my $_singleton;
 sub retrieve { return $_singleton; }
 
 sub new {
-    my ($class, $service, $no_cache) = @_;
+    my ($class, $service, $force) = @_;
 
-    return $_singleton if $_singleton && !$no_cache;
+    return $_singleton if $_singleton && !$force;
 
     my $self = {service => $service};
 
@@ -36,12 +36,9 @@ sub new {
     if ($service) {
         # If we're a service, this is where we listen for service-level requests.
         $self->{service_address} = "opensrf:service:$service";
-        $self->create_service_stream;
     }
 
-    $_singleton = $self unless $no_cache;
-
-    return $self;
+    return $_singleton = $self;
 }
 
 sub reset {                                                                    
@@ -143,26 +140,6 @@ sub tcp_connected {
     return $self->connected;
 }
 
-sub create_service_stream {
-    my $self = shift;
-
-    eval { 
-        # This gets mad when a stream / group already exists, 
-        # but it's conceivable that it's already been created.
-
-        $self->primary_connection->redis->xgroup(   
-            'create',
-            $self->service_address, # stream name
-            $self->service_address, # group name
-            '$',            # only receive new messages
-            'mkstream'      # create this stream if it's not there.
-        );
-    };
-
-    if ($@) {
-        $logger->debug("BUSYGROUP is OK => : $@");
-    }
-}
 
 # Send a message to $recipient regardless of what's in the 'to'
 # field of the message.
@@ -192,8 +169,6 @@ sub send_to {
             return;
         }
     }
-
-    $logger->internal("send(): recipient=$recipient : $msg_json");
 
     $con->send($recipient, $msg_json);
 }
@@ -237,11 +212,9 @@ sub recv {
 
     return undef unless $resp;
 
-    my $msg = OpenSRF::Transport::Redis::Message->new(json => $resp->{msg_json});
+    my $msg = OpenSRF::Transport::Redis::Message->new(json => $resp);
 
     return undef unless $msg;
-
-    $msg->msg_id($resp->{msg_id});
 
     $logger->internal("recv()'ed thread=" . $msg->thread);
 
@@ -256,7 +229,7 @@ sub flush_socket {
     my $self = shift;
     # Remove all messages from our personal stream
     if (my $con = $self->primary_connection) {
-        $con->redis->xtrim($con->address, 'MAXLEN', 0);
+        $con->redis->del($con->address);
     }
     return 1;
 }

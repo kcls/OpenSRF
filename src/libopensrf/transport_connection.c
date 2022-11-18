@@ -21,8 +21,6 @@ void transport_con_msg_free(transport_con_msg* msg) {
     osrfLogInternal(OSRF_LOG_MARK, "TCON transport_con_msg_free()");
 
     if (msg == NULL) { return; } 
-
-    if (msg->msg_id) { free(msg->msg_id); }
     if (msg->msg_json) { free(msg->msg_json); }
 
     free(msg);
@@ -105,34 +103,6 @@ int transport_con_connect(
 
     freeReplyObject(reply);
 
-    return transport_con_make_stream(con, con->address, 0);
-}
-
-int transport_con_make_stream(transport_con* con, const char* stream, int exists_ok) {
-    osrfLogInternal(OSRF_LOG_MARK, "TCON transport_con_make_stream() stream=%s", stream);
-
-    redisReply *reply = redisCommand(
-        con->bus, 
-        "XGROUP CREATE %s %s $ mkstream", 
-        stream,
-        stream,
-        "$",
-        "mkstream"
-    );
-
-    // Produces an error when a group/stream already exists, but that's
-    // acceptible when creating a group/stream for a stop-level service 
-    // address, since multiple Listeners are allowed.
-    if (handle_redis_error(reply, 
-        "XGROUP CREATE %s %s $ mkstream", 
-        stream,
-        stream,
-        "$",
-        "mkstream"
-    )) { return exists_ok; }
-
-    freeReplyObject(reply);
-
     return 1;
 }
 
@@ -153,115 +123,81 @@ int transport_con_disconnect(transport_con* con) {
     return 0;
 }
 
-int transport_con_send(transport_con* con, const char* msg_json, const char* stream) {
+// Returns 0 on success.
+int transport_con_send(transport_con* con, const char* msg_json, const char* recipient) {
 
-    osrfLogInternal(OSRF_LOG_MARK, "Sending to stream=%s: %s", stream, msg_json);
+    osrfLogInternal(OSRF_LOG_MARK, "Sending to recipient=%s: %s", recipient, msg_json);
 
-    redisReply *reply = redisCommand(con->bus,
-        "XADD %s NOMKSTREAM MAXLEN ~ %d * message %s",
-        stream,
-        con->max_queue,
-        msg_json
-    );
+    redisReply *reply = redisCommand(con->bus, "RPUSH %s %s", recipient, msg_json);
 
-    if (handle_redis_error(reply, 
-        "XADD %s NOMKSTREAM MAXLEN ~ %d * message %s",
-        stream, con->max_queue, msg_json)) {
+    int stat = handle_redis_error(reply, "RPUSH %s %s", recipient, msg_json);
 
-        return -1;
+    if (!stat) {
+        freeReplyObject(reply);
+    }
+
+    return stat;
+}
+
+transport_con_msg* transport_con_recv_once(transport_con* con, int timeout, const char* recipient) {
+
+    osrfLogInternal(OSRF_LOG_MARK, 
+        "TCON transport_con_recv_once() timeout=%d recipient=%s", timeout, recipient);
+
+    if (recipient == NULL) { recipient = con->address; }
+
+    size_t len = 0;
+    char command_buf[256];
+
+    if (timeout == 0) { // Non-blocking list pop
+
+        len = snprintf(command_buf, 256, "LPOP %s", recipient);
+
+    } else {
+        
+        if (timeout < 0) { // Block indefinitely
+
+            len = snprintf(command_buf, 256, "BLPOP %s 0", recipient);
+
+        } else { // Block up to timeout seconds
+
+            len = snprintf(command_buf, 256, "BLPOP %s %d", recipient, timeout);
+        }
+    }
+
+    command_buf[len] = '\0';
+
+    osrfLogInternal(OSRF_LOG_MARK, 
+        "recv_one_chunk() sending command: %s", command_buf);
+
+    redisReply* reply = redisCommand(con->bus, command_buf);
+    if (handle_redis_error(reply, command_buf)) { return NULL; }
+
+    char* json = NULL;
+    if (reply->type == REDIS_REPLY_STRING) { // LPOP
+        json = strdup(reply->str);
+
+    } else if (reply->type == REDIS_REPLY_ARRAY) { // BLPOP
+
+        // BLPOP returns [list_name, popped_value]
+        if (reply->elements == 2 && reply->element[1]->str != NULL) {
+            json = strdup(reply->element[1]->str); 
+        } else {
+            osrfLogInternal(OSRF_LOG_MARK, 
+                "No response returned within timeout: %d", timeout);
+        }
     }
 
     freeReplyObject(reply);
 
-    return 0;
-}
+    osrfLogInternal(OSRF_LOG_MARK, "recv_one_chunk() read json: %s", json);
 
-transport_con_msg* transport_con_recv_once(transport_con* con, int timeout, const char* stream) {
-    osrfLogInternal(OSRF_LOG_MARK, 
-        "TCON transport_con_recv_once() timeout=%d stream=%s", timeout, stream);
-
-    if (stream == NULL) { stream = con->address; }
-
-    redisReply *reply, *tmp;
-    char *msg_id = NULL, *json = NULL;
-
-    if (timeout == 0) {
-
-        reply = redisCommand(con->bus, 
-            "XREADGROUP GROUP %s %s COUNT 1 STREAMS %s >",
-            stream, con->address, stream
-        );
-
-    } else {
-
-        if (timeout == -1) {
-            // Redis timeout 0 means block indefinitely
-            timeout = 0;
-        } else {
-            // Milliseconds
-            timeout *= 1000;
-        }
-
-        reply = redisCommand(con->bus, 
-            "XREADGROUP GROUP %s %s BLOCK %d COUNT 1 STREAMS %s >",
-            stream, con->address, timeout, stream
-        );
-    }
-
-    // Timeout or error
-    if (handle_redis_error(
-        reply,
-        "XREADGROUP GROUP %s %s %s COUNT 1 NOACK STREAMS %s >",
-        stream, con->address, "BLOCK X", stream
-    )) { return NULL; }
-
-    // Unpack the XREADGROUP response, which is a nest of arrays.
-    // These arrays are mostly 1 and 2-element lists, since we are 
-    // only reading one item on a single stream.
-    if (reply->type == REDIS_REPLY_ARRAY && reply->elements > 0) {
-        tmp = reply->element[0];
-
-        if (tmp->type == REDIS_REPLY_ARRAY && tmp->elements > 1) {
-            tmp = tmp->element[1];
-
-            if (tmp->type == REDIS_REPLY_ARRAY && tmp->elements > 0) {
-                tmp = tmp->element[0];
-
-                if (tmp->type == REDIS_REPLY_ARRAY && tmp->elements > 1) {
-                    redisReply *r1 = tmp->element[0];
-                    redisReply *r2 = tmp->element[1];
-
-                    if (r1->type == REDIS_REPLY_STRING) {
-                        msg_id = strdup(r1->str);
-                    }
-
-                    if (r2->type == REDIS_REPLY_ARRAY && r2->elements > 1) {
-                        // r2->element[0] is the message name, which we
-                        // currently don't use for anything.
-
-                        r2 = r2->element[1];
-
-                        if (r2->type == REDIS_REPLY_STRING) {
-                            json = strdup(r2->str);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    freeReplyObject(reply); // XREADGROUP
-
-    if (msg_id == NULL) {
-        // Read timed out. 'json' will also be NULL.
+    if (json == NULL) {
         return NULL;
     }
 
     transport_con_msg* tcon_msg = safe_malloc(sizeof(transport_con_msg));
-    tcon_msg->msg_id = msg_id;
     tcon_msg->msg_json = json;
-
-    osrfLogInternal(OSRF_LOG_MARK, "recv_one_chunk() read json: %s", json);
 
     return tcon_msg;
 }

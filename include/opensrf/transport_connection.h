@@ -26,7 +26,6 @@ struct transport_con_struct {
 typedef struct transport_con_struct transport_con;
 
 struct transport_con_msg_struct {
-    char* msg_id;
     char* msg_json;
 };
 typedef struct transport_con_msg_struct transport_con_msg;
@@ -45,18 +44,15 @@ int transport_con_connect(transport_con* con,
 
 int transport_con_disconnect(transport_con* con);
 
-int transport_con_send(transport_con* con, const char* msg_json, const char* stream);
+int transport_con_send(transport_con* con, const char* msg_json, const char* recipient);
 
-transport_con_msg* transport_con_recv_once(transport_con* con, int timeout, const char* stream);
+transport_con_msg* transport_con_recv_once(transport_con* con, int timeout, const char* recipient);
 
-transport_con_msg* transport_con_recv(transport_con* con, int timeout, const char* stream);
+transport_con_msg* transport_con_recv(transport_con* con, int timeout, const char* recipient);
 
 void transport_con_flush_socket(transport_con* con);
 
 int handle_redis_error(redisReply *reply, const char* command, ...);
-
-int transport_con_make_stream(transport_con* con, const char* stream, int exists_ok);
-
 
 #ifdef __cplusplus
 }

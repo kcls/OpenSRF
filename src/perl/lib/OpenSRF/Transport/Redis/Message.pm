@@ -18,7 +18,6 @@ sub new {
         $self->{thread} = $args{thread} || '';
         $self->{body} = $args{body} || '';
         $self->{osrf_xid} = $args{osrf_xid} || '';
-        $self->{msg_id} = $args{msg_id} || '';
         $self->{router_command} = $args{router_command} || '';
         $self->{router_class} = $args{router_class} || '';
         $self->{router_reply} = $args{router_reply} || '';
@@ -66,12 +65,6 @@ sub osrf_xid {
     my($self, $osrf_xid) = @_;
     $self->{osrf_xid} = $osrf_xid if defined $osrf_xid;
     return $self->{osrf_xid};
-}
-
-sub msg_id {
-    my($self, $msg_id) = @_;
-    $self->{msg_id} = $msg_id if defined $msg_id;
-    return $self->{msg_id};
 }
 
 sub router_command {

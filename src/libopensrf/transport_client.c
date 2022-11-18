@@ -76,11 +76,8 @@ int client_connect_as_service(transport_client* client, const char* service) {
 
     client->primary_connection = con;
 
-    transport_con_connect(
+    return transport_con_connect(
         con, client->port, client->username, client->password);
-
-    // Make a stream for the service address
-    return transport_con_make_stream(con, client->service_address, 1);
 }
 
 int client_connect(transport_client* client) {
@@ -185,10 +182,6 @@ int client_send_message_to(transport_client* client, transport_message* msg, con
         "client_send_message() to=%s %s", recipient, msg->msg_json);
 
     return transport_con_send(con, msg->msg_json, recipient);
-
-    osrfLogInternal(OSRF_LOG_MARK, "client_send_message() send completed");
-    
-    return 0;
 }
 
 transport_message* client_recv_stream(transport_client* client, int timeout, const char* stream) {

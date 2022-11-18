@@ -648,10 +648,9 @@ sub do_reset_message_bus {
 
         my @perms = qw/
             -@all 
-            +xgroup 
-            +xadd 
-            +xreadgroup 
-            +xtrim 
+            +lpop
+            +blpop
+            +rpush
             +del 
             ~opensrf:router:*
             ~opensrf:service:*

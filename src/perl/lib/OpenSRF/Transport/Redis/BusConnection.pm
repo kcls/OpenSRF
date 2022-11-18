@@ -65,11 +65,11 @@ sub connect {
     $logger->debug("Redis client connecting: ".
         "domain=$domain port=$port username=$username address=$address");
 
-    # On disconnect, try to reconnect every 100ms up to 60 seconds.
+    # On disconnect, try to reconnect every second up to 60 seconds.
     my @connect_args = (
         server => "$domain:$port",
         reconnect => 60, 
-        every => 100_000
+        every => 1_000_000
     );
 
     $logger->debug("Connecting to bus: @connect_args");
@@ -83,17 +83,6 @@ sub connect {
     }
 
     $logger->debug("Auth'ed with Redis as $username OK : address=$address");
-
-    # Each bus connection has its own stream / group for receiving
-    # direct messages.  These streams/groups should not pre-exist.
-
-    $self->redis->xgroup(   
-        'create',
-        $address,
-        $address,
-        '$',            # only receive new messages
-        'mkstream'      # create this stream if it's not there.
-    );
 
     return $self;
 }
@@ -116,22 +105,9 @@ sub send {
     
     $logger->internal("send(): to=$dest_stream : $msg_json");
 
-    my @params = (
-        $dest_stream,
-        'NOMKSTREAM',
-        'MAXLEN', 
-        '~',                        # maxlen-ish
-        $self->{max_queue},
-        '*',                        # let Redis generate the ID
-        'message',                  # gotta call it something 
-        $msg_json
-    );
+    eval { $self->redis->rpush($dest_stream, $msg_json) };
 
-    eval { $self->redis->xadd(@params) };
-
-    if ($@) {
-        $logger->error("XADD error: $@ : @params");
-    }
+    if ($@) { $logger->error("RPUSH error: $@"); }
 }
 
 # $timeout=0 means check for data without blocking
@@ -145,55 +121,37 @@ sub recv {
 
     $logger->debug("Waiting for content at: $dest_stream");
 
-    my @block;
-    if ($timeout) {
-        # 0 means block indefinitely in Redis
-        $timeout = 0 if $timeout == -1;
-        $timeout *= 1000; # milliseconds
-        @block = (BLOCK => $timeout);
+    my $packet;
+
+    if ($timeout == 0) {
+        # Non-blocking list pop
+        eval { $packet = $self->redis->lpop($dest_stream) };
+
+    } else {
+        # In Redis, timeout 0 means wait indefinitely
+        eval { $packet = 
+            $self->redis->blpop($dest_stream, $timeout == -1 ? 0 : $timeout) };
     }
 
-    my @params = (
-        GROUP => $dest_stream,
-        $self->address,
-        COUNT => 1,
-        @block,
-        'NOACK',
-        STREAMS => $dest_stream,
-        '>' # new messages only
-    );      
-
-    my $packet;
-    eval {$packet = $self->redis->xreadgroup(@params) };
-
     if ($@) {
-        $logger->error("Redis XREADGROUP error: $@ : @params");
+        $logger->error("Redis list pop error: $@");
         return undef;
     }
 
     # Timed out waiting for data.
     return undef unless defined $packet;
 
-    # TODO make this more self-documenting.  also, too brittle?
-    # Also note at some point we may need to return info about the
-    # recipient stream to the caller in case we are listening
-    # on multiple streams.
-    my $container = $packet->[0]->[1]->[0];
-    my $msg_id = $container->[0];
-    my $json = $container->[1]->[1];
+    my $json = ref $packet eq 'ARRAY' ? $packet->[1] : $packet;
 
     $logger->internal("recv() $json");
 
-    return {
-        msg_json => $json,
-        msg_id => $msg_id
-    };
+    return $json;
 }
 
 sub flush_socket {
     my $self = shift;
     # Remove all messages from my address
-    $self->redis->xtrim($self->address, 'MAXLEN', 0);
+    $self->redis->del($self->address);
     return 1;
 }
 
