@@ -240,13 +240,13 @@ static void osrf_prefork_send_router_registration(
     if (unregister) {
 
 	    osrfLogInfo( OSRF_LOG_MARK, "%s un-registering with router %s", appname, jid );
-	    msg = message_init( "\"unregistering\"", NULL, NULL, jid, NULL );
+	    msg = message_init( "\"[]\"", NULL, NULL, jid, NULL );
 	    message_set_router_info( msg, NULL, NULL, appname, "unregister", 0 );
 
     } else {
 
 	    osrfLogInfo( OSRF_LOG_MARK, "%s registering with router %s", appname, jid );
-	    msg = message_init( "\"registering\"", NULL, NULL, jid, NULL );
+	    msg = message_init( "\"[]\"", NULL, NULL, jid, NULL );
 	    message_set_router_info( msg, NULL, NULL, appname, "register", 0 );
     }
 
@@ -402,8 +402,6 @@ static int prefork_child_process_request( prefork_child* child, char* data ) {
 	if( !child ) return 0;
 
 	transport_client* client = osrfSystemGetTransportClient();
-
-    osrfLogInfo(OSRF_LOG_MARK, "we have a client = %s", client);
 
 	// Make sure that we're still connected to Jabber; reconnect if necessary.
 	if( !client_connected( client )) {
@@ -850,9 +848,10 @@ static void prefork_run( prefork_simple* forker ) {
 			return;
 		}
 
-		// Wait indefinitely for an input message
+        // NOTE: avoid indefinite waiting in our recv calls.  
+        // See Perl bits for more info.
 		osrfLogDebug( OSRF_LOG_MARK, "Forker going into wait for data..." );
-		cur_msg = client_recv_for_service( forker->connection, -1 );
+		cur_msg = client_recv_for_service( forker->connection, 5 );
 
 		if( cur_msg == NULL ) {
 			// most likely a signal was received.  clean up any recently

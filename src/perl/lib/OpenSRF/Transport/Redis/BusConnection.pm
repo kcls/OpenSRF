@@ -119,7 +119,7 @@ sub recv {
     my ($self, $timeout, $dest_stream) = @_;
     $dest_stream ||= $self->address;
 
-    $logger->debug("Waiting for content at: $dest_stream");
+    $logger->internal("Waiting for content at: $dest_stream");
 
     my $packet;
 

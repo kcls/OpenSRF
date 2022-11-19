@@ -7,7 +7,7 @@ use base qw/OpenSRF::Transport::Redis::Client/;
 
 sub construct {
     my ($class, $service, $force) = @_;
-    return __PACKAGE__->SUPER::new($service, $force);
+    return __PACKAGE__->SUPER::new($service || "client", $force);
 }
 
 sub process {

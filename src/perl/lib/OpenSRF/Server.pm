@@ -160,10 +160,10 @@ sub run {
         $self->check_status;
         $self->{child_died} = 0;
 
-        my $msg = $self->{osrf_handle}->process($wait_time);
+        my $msg = $self->{osrf_handle}->process($wait_time, $self->{service});
 
         # we woke up for any reason, reset the wait time to allow
-        # for idle maintenance as necessary
+        # for more frequent idle maintenance checks.
         $wait_time = 1;
 
         if($msg) {
@@ -215,7 +215,7 @@ sub run {
                 # for a new request.  In future, we could replace
                 # signals with messages sent directly to listeners
                 # telling them to shutdown.
-                $wait_time = 3 if 
+                $wait_time = 5 if 
                     !$self->perform_idle_maintenance and # no maintenance performed this time
                     @{$self->{active_list}} == 0; # no active children 
             }
@@ -540,7 +540,7 @@ sub register_routers {
         $logger->info("server: registering with router $_");
         $self->{osrf_handle}->send(
             to => $_,
-            body => '"registering"',
+            body => '"[]"',
             router_command => 'register',
             router_class => $self->{service}
         );
@@ -561,7 +561,7 @@ sub unregister_routers {
         $logger->info("server: disconnecting from router $router");
         $self->{osrf_handle}->send(
             to => $router,
-            body => '"unregistering"',
+            body => '"[]"',
             router_command => "unregister",
             router_class => $self->{service}
         );

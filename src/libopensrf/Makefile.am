@@ -14,7 +14,7 @@
 
 AM_CFLAGS = $(DEF_CFLAGS) -DASSUME_STATELESS  -DOSRF_STRICT_PARAMS -rdynamic -fno-strict-aliasing -DOSRF_JSON_ENABLE_XML_UTILS
 AM_LDFLAGS = $(DEF_LDFLAGS) -R $(libdir)
-LDADD = -lopensrf -lfyaml
+LDADD = -lopensrf
 
 DISTCLEANFILES = Makefile.in Makefile
 

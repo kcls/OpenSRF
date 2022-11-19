@@ -214,12 +214,6 @@ AC_ARG_WITH([hiredis],
 [HIREDIS_HEADERS=/usr/include/hiredis/])
 AC_SUBST([HIREDIS_HEADERS])
 
-AC_ARG_WITH([fyaml],
-[  --with-fyaml=path               location of the fyaml headers (default is /usr/include/))],
-[FYAML_HEADERS=${withval}],
-[FYAML_HEADERS=/usr/include/])
-AC_SUBST([FYAML_HEADERS])
-
 AC_ARG_WITH([includes],
 [  --with-includes=DIRECTORIES      a colon-separated list of directories that will be added to the list the compiler searches for header files (Example: --with-includes=/path/headers:/anotherpath/moreheaders)],
 [EXTRA_USER_INCLUDES=${withval}])
@@ -287,7 +281,6 @@ if test "x$OSRF_INSTALL_CORE" = "xtrue"; then
 	AC_CHECK_LIB([readline], [readline], [], AC_MSG_ERROR(***OpenSRF requires readline development headers))
 	AC_CHECK_LIB([xml2], [xmlAddID], [], AC_MSG_ERROR(***OpenSRF requires xml2 development headers))
     AC_CHECK_LIB([hiredis], [redisConnect], [], AC_MSG_ERROR(***OpenSRF requires libhiredis))
-    AC_CHECK_LIB([fyaml], [fy_document_build_from_file], [], AC_MSG_ERROR(***OpenSRF requires libfyaml))
 	# Check for libmemcached and set flags accordingly
 	PKG_CHECK_MODULES(memcached, libmemcached >= 0.8.0)
 	AC_SUBST(memcached_CFLAGS)
@@ -357,6 +350,5 @@ AC_MSG_RESULT([--------------------- Configuration options:  -------------------
         AC_MSG_RESULT(Apache version:                  ${APACHE_READABLE_VERSION})
         AC_MSG_RESULT(libxml2 headers location:        ${LIBXML2_HEADERS})
         AC_MSG_RESULT(libhiredis headers location:     ${HIREDIS_HEADERS})
-        AC_MSG_RESULT(libfyaml headers location:       ${FYAML_HEADERS})
 
 AC_MSG_RESULT([----------------------------------------------------------------------])

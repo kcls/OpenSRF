@@ -88,6 +88,7 @@ static growing_buffer* stdin_buf = NULL;
 static transport_client* osrf_handle = NULL;
 // Reusable string buf for recipient addresses
 static char recipient_buf[RECIP_BUF_SIZE];
+static char deliver_to_buf[RECIP_BUF_SIZE];
 // Websocket client IP address (for logging)
 static char* client_ip = NULL;
 // Tracks threads that have active requests in flight.
@@ -437,13 +438,25 @@ static void relay_stdin_message(const char* msg_string) {
         }
     }
 
+    char* deliver_to = NULL;
+
     if (!recipient) {
 
         if (service) {
+            // Top level API calls are addressed to the service in question,
+            // but they are sent to the router for processing.
+
             int size = snprintf(recipient_buf, 
-                RECIP_BUF_SIZE - 1, "opensrf:router:%s", osrf_domain);
+                RECIP_BUF_SIZE - 1, "opensrf:service:%s", service);
+
             recipient_buf[size] = '\0';
             recipient = recipient_buf;
+
+            size = snprintf(deliver_to_buf, 
+                RECIP_BUF_SIZE - 1, "opensrf:router:%s", osrf_domain);
+
+            deliver_to_buf[size] = '\0';
+            deliver_to = deliver_to_buf;
 
         } else {
             osrfLogWarning(OSRF_LOG_MARK, "WS Unable to determine recipient");
@@ -471,7 +484,7 @@ static void relay_stdin_message(const char* msg_string) {
 
     message_set_osrf_xid(tmsg, osrfLogGetXid());
 
-    if (client_send_message(osrf_handle, tmsg) != 0) {
+    if (client_send_message_to(osrf_handle, tmsg, deliver_to) != 0) {
         osrfLogError(OSRF_LOG_MARK, "WS failed sending data to OpenSRF, exiting");
         shut_it_down(1);
     }
