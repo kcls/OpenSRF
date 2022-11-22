@@ -89,7 +89,7 @@ vim:et:ts=2:sw=2:
     <!-- jabber login info -->
     <!-- The gateway connects to the public domain -->
     <domain>public.localhost</domain>
-    <username>opensrf</username>
+    <username>gateway</username>
     <passwd>password</passwd>
     <port>5222</port>
     <logfile>LOCALSTATEDIR/log/gateway.log</logfile>

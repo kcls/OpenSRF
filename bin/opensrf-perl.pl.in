@@ -25,11 +25,11 @@ use OpenSRF::Utils::SettingsClient;
 use OpenSRF::Transport::Listener;
 use OpenSRF::Utils;
 use OpenSRF::Utils::Config;
-use Redis;
 
 my $opt_service = undef;
 my $opt_config = "@CONF_DIR@/opensrf_core.xml";
 my $opt_pid_dir = "@PID_DIR@/run/opensrf";
+my $opt_bus_accounts = "@CONF_DIR@/redis-accounts.txt";
 my $opt_no_daemon = 0;
 my $opt_settings_pause = 0;
 my $opt_localhost = 0;
@@ -73,6 +73,7 @@ my $hostname = $ENV{OSRF_HOSTNAME} || hostfqdn();
 GetOptions(
     'service=s' => \$opt_service,
     'config=s' => \$opt_config,
+    'bus-accounts=s' => \$opt_bus_accounts,
     'pid-dir=s' => \$opt_pid_dir,
     'no-daemon' => \$opt_no_daemon,
     'settings-startup-pause=i' => \$opt_settings_pause,
@@ -627,39 +628,9 @@ sub do_reset_message_bus {
         my $domain = ref $router ? $router->{domain} : $router;
         my $port = $conf->bootstrap->port;
 
-        # This redis connection uses the "default" account, which has
-        # access to all actions and keys so it can act as the admin.
-        my @connect_args = (server => "$domain:$port");
+        msg("Resetting bus accounts for domain $domain");
 
-        my $redis = Redis->new(@connect_args) or 
-            die "Cannot connect to Redis instance at @connect_args\n";
-
-        # Clear all the data
-        msg("Clearing all data from message bus: @connect_args");
-        $redis->flushall;
-
-        my $username = $conf->bootstrap->username;
-        my $password = $conf->bootstrap->passwd;
-
-        msg("Applying bus access for $username");
-
-        $redis->acl('SETUSER', $username, 'reset');
-        $redis->acl('SETUSER', $username, 'on', ">$password");
-
-        my @perms = qw/
-            -@all 
-            +lpop
-            +blpop
-            +rpush
-            +del 
-            ~opensrf:router:*
-            ~opensrf:service:*
-            ~opensrf:client:*
-        /;
-
-        $redis->acl('SETUSER', $username, @perms);
-
-        $redis->quit;
+        system("cat $opt_bus_accounts | redis-cli -h $domain -p $port > /dev/null");
     }
 }
 
