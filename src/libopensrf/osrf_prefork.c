@@ -850,7 +850,7 @@ static void prefork_run( prefork_simple* forker ) {
 
         // NOTE: avoid indefinite waiting in our recv calls.  
         // See Perl bits for more info.
-		osrfLogDebug( OSRF_LOG_MARK, "Forker going into wait for data..." );
+		osrfLogInternal( OSRF_LOG_MARK, "Forker going into wait for data..." );
 		cur_msg = client_recv_for_service( forker->connection, 5 );
 
 		if( cur_msg == NULL ) {
