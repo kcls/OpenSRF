@@ -162,9 +162,6 @@ sub run {
 
         my $msg = $self->{osrf_handle}->process($wait_time);
 
-        !$from_network and $chatty and $logger->debug("server: attempting to process previously queued message");
-        $from_network and $chatty and $logger->internal("server: no queued messages, processing due to network or signal");
-
         # we woke up for any reason, reset the wait time to allow
         # for idle maintenance as necessary
         $wait_time = 1;
