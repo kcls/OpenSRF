@@ -107,7 +107,11 @@ sub send {
 
     eval { $self->redis->rpush($dest_stream, $msg_json) };
 
-    if ($@) { $logger->error("RPUSH error: $@"); }
+    if ($@) { 
+        $logger->error("RPUSH error: $@"); 
+        $logger->error("BusConnection pausing for a few seconds after bus error");
+        sleep(3);
+    }
 }
 
 # $timeout=0 means check for data without blocking

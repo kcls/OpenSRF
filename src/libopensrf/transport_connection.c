@@ -1,4 +1,5 @@
 #include <opensrf/transport_connection.h>
+#include<unistd.h>
 
 transport_con* transport_con_new(const char* domain) {
 
@@ -252,6 +253,14 @@ int handle_redis_error(redisReply *reply, const char* command, ...) {
     char* err = reply == NULL ? "" : reply->str;
     osrfLogError(OSRF_LOG_MARK, "REDIS Error [%s] %s", err, VA_BUF);
     freeReplyObject(reply);
+
+    // Some bus error conditions can lead to looping on an unusable
+    // connection.  Avoid flooding the logs by inserting a short
+    // wait after any Redis errors.  Note, these should never happen
+    // under normal wear and tear.  It's possible we should just exit
+    // here, but need to collect some data first.
+    osrfLogError(OSRF_LOG_MARK, "Resting for a few seconds after bus failure...");
+    sleep(3);
 
     return 1;
 }
