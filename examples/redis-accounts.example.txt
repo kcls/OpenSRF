@@ -28,7 +28,7 @@ SET comment "admin can do anything"
 
 ACL SETUSER admin reset
 ACL SETUSER admin on >password
-ACL SETUSER admin +@all ~* &*
+ACL SETUSER admin +@all ~*
 
 DEL comment
 
