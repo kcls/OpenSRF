@@ -137,6 +137,7 @@ sub server_build {
 
 	my $config_client = OpenSRF::Utils::SettingsClient->new();
 	my $stateless = $config_client->config_value("apps", $service, "stateless");
+    $stateless = 1 if $service eq 'router';
 
 	#my $max_requests = $conf->$service->max_requests;
 	my $max_requests	= $config_client->config_value("apps",$service,"max_requests");
@@ -248,6 +249,8 @@ sub create {
 	if($app ne "opensrf.settings" || $c->has_config()) { 
 		$stateless = $c->config_value("apps", $app, "stateless");
 	}
+
+    $stateless = 1 if $app eq 'router';
 
 	my $sess_id = time . rand( $$ );
 	while ( $class->find($sess_id) ) {
