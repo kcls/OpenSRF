@@ -53,7 +53,7 @@ static transport_con* get_transport_con(transport_client* client, const char* do
     transport_con_set_address(con, NULL);
 
     // Connections to remote domains assume the same connection
-    // attributes apply.
+    // attributes apply, minus the domain.
     transport_con_connect(con, client->port, client->username, client->password);
 
     return con;
@@ -154,7 +154,7 @@ int client_send_message_to(transport_client* client, transport_message* msg, con
 
     transport_con* con;
 
-    if (strstr(receiver, "opensrf:client")) {
+    if (strstr(receiver, "opensrf:client") || strstr(receiver, "opensrf:router")) {
         // We may be talking to a worker that runs on a remote domain.
         // Find or create a connection to the domain.
 

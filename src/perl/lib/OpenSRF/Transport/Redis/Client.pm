@@ -156,14 +156,14 @@ sub send_to {
     my $msg_json = $msg->to_json;
     my $con = $self->primary_connection;
 
-    if ($recipient =~ /^opensrf:client/o) {
+    if ($recipient =~ /^opensrf:client/o || $recipient =~ /^opensrf:router/o) {
         # Clients may be lurking on remote nodes.
         # Make sure we have a connection to said node.
 
         # opensrf:client:domain:...
         my (undef, undef, $domain) = split(/:/, $recipient);
 
-        my $con = $self->get_connection($domain);
+        $con = $self->get_connection($domain);
         if (!$con) {
             $logger->error("Cannot send message to node $domain: $msg_json");
             return;
