@@ -7,7 +7,7 @@ use OpenSRF::Utils::Logger qw/$logger/;
 
 # domain doubles as the host of the Redis instance.
 sub new {
-    my ($class, $domain, $port, $username, $password, $max_queue) = @_;
+    my ($class, $domain, $port, $username, $password, $service) = @_;
 
     $logger->debug("Creating new bus connection $domain:$port user=$username");
 
@@ -16,7 +16,7 @@ sub new {
         port => $port || 6379,
         username => $username,
         password => $password,
-        max_queue => $max_queue
+        service => $service
     };
 
     return bless($self, $class);
@@ -40,8 +40,12 @@ sub domain {
 sub set_address {
     my ($self) = @_;
 
+    # If this is a client operating on behalf of a service, include the
+    # service name in the bus address for improved debugability.
+    my $svc = $self->{service} ? ':' . $self->{service} . ':' : '';
+
     my $address = sprintf(
-        "opensrf:client:%s:%s:$$:%s", $self->{domain}, hostfqdn(), int(rand(10_000)));
+        "opensrf:client:%s:%s:$svc$$:%s", $self->{domain}, hostfqdn(), int(rand(10_000_000)));
 
     $self->{address} = $address;
 }

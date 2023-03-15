@@ -80,6 +80,24 @@ int client_connect_as_service(transport_client* client, const char* service) {
         con, client->port, client->username, client->password);
 }
 
+int client_connect_for_service(transport_client* client, const char* service) {
+    osrfLogInternal(OSRF_LOG_MARK, 
+        "TCLIENT client_connect_for_service() service=%s", service);
+
+    client->service = strdup(service);
+
+    transport_con* con = client_connect_common(client, client->primary_domain);
+
+    // Append the service name to the bus address
+    transport_con_set_address(con, service);
+
+    client->primary_connection = con;
+
+    return transport_con_connect(
+        con, client->port, client->username, client->password);
+}
+
+
 int client_connect(transport_client* client) {
     osrfLogInternal(OSRF_LOG_MARK, "TCLIENT client_connect()");
 

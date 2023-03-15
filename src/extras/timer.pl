@@ -13,7 +13,7 @@ use Time::HiRes qw/time/;
 #my $test_service = "open-ils.storage";
 my $test_service = "opensrf.settings";
 
-my $iterations = 500;
+my $iterations = 50;
 
 my $small_echo_data = <<TEXT;
     1237012938471029348170197908709870987098709870987098709809870987098709870

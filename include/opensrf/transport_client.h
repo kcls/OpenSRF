@@ -45,7 +45,10 @@ typedef struct transport_client_struct transport_client;
 transport_client* client_init(const char* server, 
     int port, const char* username, const char* password);
 
+/// Top-level service connection
 int client_connect_as_service(transport_client* client, const char* service);
+/// Client connecting on behalf of a service
+int client_connect_for_service(transport_client* client, const char* service);
 int client_connect(transport_client* client); 
 
 int client_disconnect( transport_client* client );

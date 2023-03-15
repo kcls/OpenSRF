@@ -461,6 +461,10 @@ int osrf_system_bootstrap_common(const char* config_file,
 	    if (client_connect_as_service(client, appname)) {
 		    osrfGlobalTransportClient = client;
 	    }
+    } else if (appname != NULL && strcmp(appname, "client") != 0) {
+   	    if (client_connect_for_service(client, appname)) {
+		    osrfGlobalTransportClient = client;
+	    }
     } else {
 	    if (client_connect(client)) {
 		    osrfGlobalTransportClient = client;

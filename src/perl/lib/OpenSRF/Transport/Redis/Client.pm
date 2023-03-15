@@ -61,12 +61,12 @@ sub add_connection {
     my $username = $conf->bootstrap->username;
     my $password = $conf->bootstrap->passwd;
     my $port = $conf->bootstrap->port;
-    my $max_queue = 1024; # TODO
 
     # Assumes other connection parameters are the same across
     # Redis instances, apart from the hostname.
     my $connection = OpenSRF::Transport::Redis::BusConnection->new(
-        $domain, $port, $username, $password, $max_queue
+        $domain, $port, $username, $password, 
+        $self->service ne 'client' ? $self->service : undef
     );
 
     $connection->set_address();
