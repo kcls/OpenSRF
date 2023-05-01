@@ -227,7 +227,7 @@ save ""
 +
 3. Restart the Redis server to make the changes take effect:
 +
-.Starting ejabberd
+.Starting Redis
 [source, bash]
 ---------------------------------------------------------------------------
 systemctl start redis-server
@@ -289,13 +289,24 @@ cp redis-accounts.example.txt redis-accounts.txt
 
 Creating Redis Accounts
 --------------------------------------
-
 Before starting services, it's necessary to create Redis accounts.
 Issue the following command as the *opensrf* Linux account:
-
++
 [source, bash]
 ---------------------------------------------------------------------------
 osrf_control --reset-message-bus
+---------------------------------------------------------------------------
++
+Accessing the Redis Command Line
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The script which creates Redis OpenSRF accounts also applies a password
+to the 'default' Redis account for security.  To access the Redis
+command line with full privileges, use the password for the 'default'
+user from the SYSCONFDIR/redis-accounts.txt file.  For example:
++
+[source,bash]
+---------------------------------------------------------------------------
+REDISCLI_AUTH=f0d2ebcc-5a52-49e4-a910-a515144b4141 redis-cli
 ---------------------------------------------------------------------------
 
 Starting and stopping OpenSRF services

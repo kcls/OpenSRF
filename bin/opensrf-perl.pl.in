@@ -621,16 +621,47 @@ sub do_reset_message_bus {
 
     my $routers = $conf->bootstrap->routers;
 
-    # TODO pull logins for all clients in the conf, including
-    # gateway and router.
-    for my $router (@{$conf->bootstrap->routers}) {
+    my $bus_pass = `grep 'ACL SETUSER default on >' $opt_bus_accounts | cut -d'>' -f2`;
 
+    chomp($bus_pass);
+
+    die "No password for Redis 'default' account found in $opt_bus_accounts\n"
+        unless $bus_pass;
+
+    # Redis prefers the password be passed via ENV.
+    $ENV{REDISCLI_AUTH} = $bus_pass;
+
+    # Apply the bus accounts to all of our domains.
+    for my $router (@{$conf->bootstrap->routers}) {
         my $domain = ref $router ? $router->{domain} : $router;
         my $port = $conf->bootstrap->port;
 
+        # The first time this script runs after installing / rebooting Redis,
+        # the 'default' account will have no password.  Subsequent logins
+        # will use the password defined in our redis-accounts file.  See if
+        # we can figure where we are...
+        my $login = `echo "exit" | redis-cli -h $domain -p $port 2>&1`;
+
+        if ($login =~ /AUTH failed/) {
+            # Login failed.  Clear the password.
+            delete $ENV{REDISCLI_AUTH};
+        } else {
+            # Multiple OpenSRF domains may run on the same Redis instance.
+            # If so, make sure subsequent runs on the same redis instance 
+            # use the just-applied password.  In this case, our $login
+            # var above will be empty, becuase Redis will think we are
+            # trying to login with no authentication, and will later fail
+            # when we try to perform actions that are not allowed.
+            $ENV{REDISCLI_AUTH} = $bus_pass;
+        }
+
         msg("Resetting bus accounts for domain $domain");
 
-        system("cat $opt_bus_accounts | redis-cli -h $domain -p $port > /dev/null");
+        # Grep out some noise.  Avoid piping to /dev/null so we can 
+        # see failures.
+        my $command = "redis-cli -h $domain -p $port | grep -v OK | grep -v ^1";
+
+        system("cat $opt_bus_accounts | $command");
     }
 }
 

@@ -9,9 +9,6 @@ use OpenSRF::Transport;
 use OpenSRF::Transport::Redis::Message;
 use OpenSRF::Transport::Redis::BusConnection;
 
-# Map of bus domain names to bus connections.
-my %connections;
-
 # There will only be one Client per process, but each client may
 # have multiple connections.
 my $_singleton;
@@ -22,7 +19,10 @@ sub new {
 
     return $_singleton if $_singleton && !$force;
 
-    my $self = {service => $service};
+    my $self = {
+        service => $service,
+        connections => {},
+    };
 
     bless($self, $class);
 
@@ -70,7 +70,7 @@ sub add_connection {
     );
 
     $connection->set_address();
-    $connections{$domain} = $connection;
+    $self->{connections}->{$domain} = $connection;
     
     $connection->connect;
 
@@ -80,7 +80,7 @@ sub add_connection {
 sub get_connection {
     my ($self, $domain) = @_;
 
-    my $con = $connections{$domain};
+    my $con = $self->{connections}->{$domain};
 
     return $con if $con;
 
@@ -115,18 +115,18 @@ sub primary_domain {
 
 sub primary_connection {
     my $self = shift;
-    return $connections{$self->primary_domain};
+    return $self->{connections}->{$self->primary_domain};
 }
 
 sub disconnect {
     my ($self, $domain) = @_;
 
-    for my $domain (keys %connections) {
-        my $con = $connections{$domain};
+    for my $domain (keys %{$self->{connections}}) {
+        my $con = $self->{connections}->{$domain};
         $con->disconnect($self->primary_domain eq $domain);
-        delete $connections{$domain};
     }
 
+    $self->{connections} = {};
     $_singleton = undef;
 }
 

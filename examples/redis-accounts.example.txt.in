@@ -6,7 +6,7 @@ SET COMMENT "opensrf accounts lpop requests from their opensrf:servivce: queue."
 SET COMMENT "TODO: separate Listener vs Drone accounts to prevent Drones / standalone clients from accessing opensrf:service:*"
 
 ACL SETUSER opensrf reset
-ACL SETUSER opensrf on >password
+ACL SETUSER opensrf on >@OPENSRF_BUS_PASS@
 ACL SETUSER opensrf -@all +lpop +blpop +rpush +del ~opensrf:router:* ~opensrf:service:* ~opensrf:client:*
 
 SET comment "routers lpop requests from their own opensrf:router:* queues"
@@ -14,21 +14,18 @@ SET comment "routers send requests to opensrf:service:* queues"
 SET comment "routers send replies to opensrf:client:* queues"
 
 ACL SETUSER router reset
-ACL SETUSER router on >password
+ACL SETUSER router on >@ROUTER_BUS_PASS@
 ACL SETUSER router -@all +lpop +blpop +rpush +del ~opensrf:router:* ~opensrf:service:* ~opensrf:client:*
 
 SET comment "gateway accounts send request to opensrf:router:* queues"
 SET comment "gateway accounts send subsequent, stateful requests to opensrf:client:* queues"
 
 ACL SETUSER gateway reset
-ACL SETUSER gateway on >password
+ACL SETUSER gateway on >@GATEWAY_BUS_PASS@
 ACL SETUSER gateway -@all +lpop +blpop +rpush +del ~opensrf:router:* ~opensrf:client:*
 
-SET comment "admin can do anything"
+SET comment "default can do anything"
+SET comment "set default password last so our logged-in account does not break mid-script"
 
-ACL SETUSER admin reset
-ACL SETUSER admin on >password
-ACL SETUSER admin +@all ~*
-
-DEL comment
-
+ACL SETUSER default resetpass
+ACL SETUSER default on >@DEFAULT_BUS_PASS@

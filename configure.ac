@@ -53,6 +53,21 @@ AC_SUBST([PID_DIR])
 AC_SUBST(prefix)
 AC_SUBST(bindir)
 
+OPENSRF_BUS_PASS=$(cat /proc/sys/kernel/random/uuid)
+GATEWAY_BUS_PASS=$(cat /proc/sys/kernel/random/uuid)
+ROUTER_BUS_PASS=$(cat /proc/sys/kernel/random/uuid)
+DEFAULT_BUS_PASS=$(cat /proc/sys/kernel/random/uuid)
+
+AC_DEFINE_UNQUOTED([OPENSRF_BUS_PASS], ["$OPENSRF_BUS_PASS"], [opensrf bus password])
+AC_DEFINE_UNQUOTED([GATEWAY_BUS_PASS], ["$GATEWAY_BUS_PASS"], [gateway bus password])
+AC_DEFINE_UNQUOTED([ROUTER_BUS_PASS], ["$ROUTER_BUS_PASS"], [router bus password])
+AC_DEFINE_UNQUOTED([DEFAULT_BUS_PASS], ["$DEFAULT_BUS_PASS"], [admin bus password])
+
+AC_SUBST([OPENSRF_BUS_PASS])
+AC_SUBST([GATEWAY_BUS_PASS])
+AC_SUBST([ROUTER_BUS_PASS])
+AC_SUBST([DEFAULT_BUS_PASS])
+
 #-------------------------------
 # Installation options
 #-------------------------------
@@ -321,6 +336,7 @@ if test "x$OSRF_INSTALL_CORE" = "xtrue"; then
 	#------------------------------------
 
 	AC_CONFIG_FILES([doc/dokuwiki-doc-stubber.pl
+			 examples/redis-accounts.example.txt
 			 examples/math_bench.pl
 			 examples/multisession-test.pl
 			 src/c-apps/Makefile
