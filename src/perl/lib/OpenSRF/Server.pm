@@ -299,7 +299,7 @@ sub write_child {
         local $SIG{'PIPE'} = sub { $self->{sig_pipe} = 1; };
 
         # In rare cases a child can die between creation and first
-        # write, typically a result of a jabber connect error.  Before
+        # write, typically a result of a bus connect error.  Before
         # sending data to each child, confirm it's still alive.  If it's
         # not, log the error and drop the message to prevent the parent
         # process from dying.
@@ -638,7 +638,7 @@ sub run {
         my $orig_name = $0;
         $0 = "$0*";
 
-        # Discard extraneous data from the jabber socket
+        # Discard extraneous data from the bus
         if(!$network->flush_socket()) {
             $logger->error("server: network disconnected!  child dropping request and exiting: $data");
             exit;

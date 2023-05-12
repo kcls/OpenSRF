@@ -105,8 +105,8 @@ sub handler {
 
 	$logger->transport( "Transport::handler() creating \n$body", INTERNAL );
 
-	# We need to disconnect the session if we got a jabber error on the client side.  For
-	# server side, we'll just tear down the session and go away.
+	# We need to disconnect the session if we got a bus error on the client 
+    # side.  For server side, we'll just tear down the session and go away.
 	if (defined($type) and $type eq 'error') {
 		# If we're a server
 		if( $app_session->endpoint == $app_session->SERVER() ) {
@@ -119,7 +119,7 @@ sub handler {
 			#$app_session->push_resend( $app_session->app_request( 
 			#		$doc->documentElement->firstChild->threadTrace ) );
 			$logger->debug(
-				"Got Jabber error on client connection $remote_id, nothing we can do..", ERROR );
+				"Got error on client connection $remote_id, nothing we can do..", ERROR );
 			return 1;
 		}
 	}
