@@ -3,6 +3,10 @@
 transport_client* client_init(const char* domain, 
     int port, const char* username, const char* password) {
 
+    if (domain == NULL || username == NULL || password == NULL) {
+        return NULL;
+    }
+
     osrfLogInfo(OSRF_LOG_MARK, 
         "TCLIENT client_init domain=%s port=%d username=%s", domain, port, username);
 
@@ -99,7 +103,7 @@ int client_connect_for_service(transport_client* client, const char* service) {
 
 
 int client_connect(transport_client* client) {
-    osrfLogInternal(OSRF_LOG_MARK, "TCLIENT client_connect()");
+    if (client == NULL) { return 0; }
 
     transport_con* con = client_connect_common(client, client->primary_domain);
 
@@ -113,6 +117,7 @@ int client_connect(transport_client* client) {
 
 // Disconnect all connections and remove them from the connections hash.
 int client_disconnect(transport_client* client) {
+    if (client == NULL) { return 0; }
 
     osrfLogDebug(OSRF_LOG_MARK, "TCLIENT Disconnecting all transport connections");
 
@@ -139,8 +144,7 @@ int client_connected( const transport_client* client ) {
 }
 
 static char* get_domain_from_address(const char* address) {
-    osrfLogInternal(OSRF_LOG_MARK, 
-        "TCLIENT get_domain_from_address() address=%s", address);
+    if (address == NULL) { return NULL; }
 
     char* addr_copy = strdup(address);
     strtok(addr_copy, ":"); // "opensrf:"
@@ -164,8 +168,6 @@ int client_send_message(transport_client* client, transport_message* msg) {
 }
 
 int client_send_message_to(transport_client* client, transport_message* msg, const char* recipient) {
-    osrfLogInternal(OSRF_LOG_MARK, "TCLIENT client_send_message()");
-
 	if (client == NULL || client->error) { return -1; }
 
     const char* receiver = recipient == NULL ? msg->recipient : recipient;
@@ -207,6 +209,7 @@ int client_send_message_to(transport_client* client, transport_message* msg, con
 }
 
 transport_message* client_recv_stream(transport_client* client, int timeout, const char* stream) {
+    if (client == NULL) { return NULL; }
 
     osrfLogInternal(OSRF_LOG_MARK, 
         "TCLIENT client_recv_stream() timeout=%d stream=%s", timeout, stream);
@@ -227,11 +230,13 @@ transport_message* client_recv_stream(transport_client* client, int timeout, con
 }
 
 transport_message* client_recv(transport_client* client, int timeout) {
+    if (client == NULL || client->primary_connection == NULL) { return NULL; }
 
     return client_recv_stream(client, timeout, client->primary_connection->address);
 }
 
 transport_message* client_recv_for_service(transport_client* client, int timeout) {
+    if (client == NULL) { return NULL; }
 
     osrfLogInternal(OSRF_LOG_MARK, "TCLIENT Receiving for service %s", client->service);
 
