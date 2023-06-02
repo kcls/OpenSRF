@@ -300,8 +300,6 @@ sub do_diagnostic {
 
 
 sub do_start_router {
-    return;
-
     my $pidfile = get_pid_file('router');
     `opensrf_router $opt_config routers $pidfile`;
 
@@ -418,7 +416,7 @@ sub do_start {
 
 sub do_start_all {
     msg("starting router and services for $hostname");
-    #do_start('router');
+    do_start('router');
     return do_start_services();
 }
 
@@ -575,7 +573,7 @@ sub do_stop_all {
 
     # graceful shutdown requires the presence of the router, so stop the 
     # router last.  See if it's running first to avoid unnecessary warnings.
-    #do_stop('router', $signals[0]) if get_service_pids_from_file('router'); 
+    do_stop('router', $signals[0]) if get_service_pids_from_file('router'); 
 
     return 1;
 }

@@ -31,7 +31,7 @@ js_SCRIPTS = javascript/DojoSRF.js javascript/JSON_v1.js javascript/md5.js javas
 endif
 
 if BUILDCORE
-MAYBE_CORE = libopensrf c-apps srfsh gateway perl websocket-stdio
+MAYBE_CORE = libopensrf c-apps router srfsh gateway perl websocket-stdio
 dist_bin_SCRIPTS = @top_srcdir@/bin/opensrf-perl.pl
 bin_SCRIPTS = @top_srcdir@/bin/osrf_config
 dist_sysconf_DATA = @top_srcdir@/examples/opensrf.xml.example @top_srcdir@/examples/opensrf_core.xml.example @top_srcdir@/examples/srfsh.xml.example @top_srcdir@/examples/redis-accounts.example.txt

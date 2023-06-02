@@ -149,6 +149,11 @@ sub recv {
     # Timed out waiting for data.
     return undef unless defined $packet;
 
+    # XXX TODO REMOVE ME
+    use Data::Dumper;
+    $Data::Dumper::Indent = 0;
+    $logger->internal("PACKET: " . Dumper($packet));
+
     my $json = ref $packet eq 'ARRAY' ? $packet->[1] : $packet;
 
     $logger->internal("recv() $json");

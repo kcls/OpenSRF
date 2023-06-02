@@ -105,6 +105,12 @@ transport_message* new_message_from_json(const char* msg_json) {
         return NULL;
     }
 
+    const char* router_class = jsonObjectGetString(jsonObjectGetKeyConst(json_hash, "router_class"));
+    if (router_class) { new_msg->router_class = strdup((const char*) router_class); }
+
+    const char* router_command = jsonObjectGetString(jsonObjectGetKeyConst(json_hash, "router_command"));
+    if (router_command) { new_msg->router_command = strdup((const char*) router_command); }
+
     const char* sender = jsonObjectGetString(jsonObjectGetKeyConst(json_hash, "from"));
     if (sender) { new_msg->sender = strdup((const char*) sender); }
 
@@ -387,9 +393,6 @@ int message_prepare_json(transport_message* msg) {
     jsonObjectSetKey(json_hash, "thread", jsonNewObject(msg->thread));
     jsonObjectSetKey(json_hash, "osrf_xid", jsonNewObject(msg->osrf_xid));
 
-    if (msg->router_from) {
-        jsonObjectSetKey(json_hash, "router_from", jsonNewObject(msg->router_from));
-    }
     if (msg->router_to) {
         jsonObjectSetKey(json_hash, "router_to", jsonNewObject(msg->router_to));
     }

@@ -107,9 +107,7 @@ int transport_con_connect(
     return 1;
 }
 
-int transport_con_disconnect(transport_con* con) {
-    osrfLogInternal(OSRF_LOG_MARK, "TCON transport_con_disconnect()");
-
+int transport_con_clear(transport_con* con) {
     if (con == NULL || con->bus == NULL) { return -1; }
 
     redisReply *reply = redisCommand(con->bus, "DEL %s", con->address);
@@ -118,7 +116,13 @@ int transport_con_disconnect(transport_con* con) {
         freeReplyObject(reply);
     }
 
+    return 0;
+}
+
+int transport_con_disconnect(transport_con* con) {
+    transport_con_clear(con);
     redisFree(con->bus);
+
     con->bus = NULL;
 
     return 0;

@@ -425,7 +425,7 @@ static int osrfHttpTranslatorProcess(osrfHttpTranslator* trans) {
     message_set_osrf_xid(tmsg, osrfLogGetXid());
 
     // Message destined for a service
-    char* send_to = trans->recipient;
+    const char* send_to = trans->recipient;
     if (strstr(send_to, "opensrf:service:")) {
         char stbuf[1024 + 1];
         snprintf(stbuf, 1024, "opensrf:router:%s", domainName);

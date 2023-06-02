@@ -30,7 +30,8 @@ struct message_list_struct;
 struct transport_client_struct {
     char* primary_domain;
     char* service; // NULL if this is a standalone client.
-    char* service_address; // NULL if this is a standalone client.
+    char* service_address; // NULL if this is not a service
+    char* router_address; // NULL if this is not a router
     osrfHash* connections;
 
     int port;
@@ -47,6 +48,7 @@ transport_client* client_init(const char* server,
 
 /// Top-level service connection
 int client_connect_as_service(transport_client* client, const char* service);
+int client_connect_as_router(transport_client* client, const char* name);
 /// Client connecting on behalf of a service
 int client_connect_for_service(transport_client* client, const char* service);
 int client_connect(transport_client* client); 
@@ -58,14 +60,26 @@ int client_free( transport_client* client );
 int client_discard( transport_client* client );
 
 int client_send_message( transport_client* client, transport_message* msg );
-int client_send_message_to(
-    transport_client* client, transport_message* msg, const char* recipient);
+int client_send_message_to(transport_client* client, 
+    transport_message* msg, const char* recipient);
+
+
+char* get_domain_from_address(const char* address);
+
+int client_send_message_to_from_at(
+    transport_client* client, 
+    transport_message* msg, 
+    const char* recipient, 
+    const char* sender,
+    const char* domain
+);
 
 int client_connected( const transport_client* client );
 
 transport_message* client_recv_stream(transport_client* client, int timeout, const char* stream);
 transport_message* client_recv(transport_client* client, int timeout);
 transport_message* client_recv_for_service(transport_client* client, int timeout);
+transport_message* client_recv_for_router(transport_client* client, int timeout);
 
 int client_sock_fd( transport_client* client );
 
