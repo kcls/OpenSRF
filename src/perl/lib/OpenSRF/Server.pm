@@ -565,7 +565,8 @@ sub unregister_routers {
             router_command => "unregister",
             router_class => $self->{service}
         );
-        $logger->info("Disconnect sent to $router");
+
+        $logger->info("Unregister sent to $router");
     }
 }
 

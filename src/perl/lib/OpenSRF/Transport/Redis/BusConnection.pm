@@ -149,12 +149,18 @@ sub recv {
     # Timed out waiting for data.
     return undef unless defined $packet;
 
-    # XXX TODO REMOVE ME
-    use Data::Dumper;
-    $Data::Dumper::Indent = 0;
-    $logger->internal("PACKET: " . Dumper($packet));
-
     my $json = ref $packet eq 'ARRAY' ? $packet->[1] : $packet;
+
+    # NOTE
+    # $json will be a numeric string (typically "1", but not always)
+    # when blpop is interrupted by a USR signal (and possibly others).
+    # (Unclear why the response isn't simply undef or a failed eval).
+    # This is not a valid message as far as OpenSRF is concerned.  Treat
+    # it like a non-response.
+    #
+    # An OpenSRF message is at minimum over 100 bytes.  Discard anything
+    # less than a fraction of that.
+    return undef unless length($json) > 20;
 
     $logger->internal("recv() $json");
 
