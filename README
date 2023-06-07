@@ -158,7 +158,7 @@ chown -R opensrf:opensrf /<PREFIX>
 Define your public and private OpenSRF domains
 ----------------------------------------------
 
-For security purposes, OpenSRF uses Jabber domains to separate services
+For security purposes, OpenSRF uses Redis domains to separate services
 into public and private realms. Throughout these instructions, we will use
 the example domains `public.localhost` and `private.localhost`. 
 
@@ -250,7 +250,7 @@ work. SYSCONFDIR is `/opensrf/etc` by default, or the value that you passed to
          to use `localhost`, so in most cases you will leave this section
          as-is.
     
-  * `SYSCONFDIR/opensrf_core.xml` - this file lists the Jabber connection
+  * `SYSCONFDIR/opensrf_core.xml` - this file lists the Redis connection
     information that will be used for the system, as well as determining
     logging verbosity and defining which services will be exposed on the
     HTTP gateway.
@@ -273,18 +273,18 @@ cp redis-accounts.example.txt redis-accounts.txt
 ---------------------------------------------------------------------------
 +
   2. Edit the `SYSCONFDIR/opensrf_core.xml` file to update the four username
-     / password pairs to match the Jabber user accounts you just created:
+     / password pairs to match the Redis user accounts in `SYSCONFDIR/redis-accounts.txt`:
 
-    a. `<config><opensrf>` = use the private Jabber `opensrf` user
-    b. `<config><gateway>` = use the public Jabber `opensrf` user
-    c. `<config><routers><router>` = use the public Jabber `router` user
-    d. `<config><routers><router>` = use the private Jabber `router` user
+    a. `<config><opensrf>` = use the private Redis `opensrf` user
+    b. `<config><gateway>` = use the public Redis `gateway` user
+    c. `<config><routers><router>` = use the public Redis `router` user
+    d. `<config><routers><router>` = use the private Redis `router` user
   3. Create a `.srfsh.xml` file in the home directory of each user
      that you want to use `srfsh` to communicate with OpenSRF services. For
      example, to enable the *opensrf* Linux account to use `srfsh`:
     a. `cp SYSCONFDIR/srfsh.xml.example ~/.srfsh.xml`
     b. Open `~/.srfsh.xml` in your text editor of choice and update the
-       password to match the password you set for the Jabber `opensrf` user
+       password to match the password you set for the Redis `opensrf` user
        at the `private.localhost` domain.
 
 Creating Redis Accounts
