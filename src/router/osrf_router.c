@@ -284,6 +284,8 @@ static void osrfRouteApiCall(
         free(status_data);
         message_free(status_tmsg);
         osrfMessageFree(status_msg);
+
+        return;
     }
 
     ServiceInstance* si = (ServiceInstance*) osrfListGetIndex(se->instances, 0);
