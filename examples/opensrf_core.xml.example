@@ -31,7 +31,7 @@ vim:et:ts=2:sw=2:
     </routers>
 
 
-    <!-- Jabber login settings
+    <!-- Redis login settings
         Our domain should match that of the private router -->
     <domain>private.localhost</domain>
     <username>opensrf</username>
@@ -86,7 +86,7 @@ vim:et:ts=2:sw=2:
     <!--  the routers's name on the network -->
     <router_name>router</router_name>
 
-    <!-- jabber login info -->
+    <!-- Redis login info -->
     <!-- The gateway connects to the public domain -->
     <domain>public.localhost</domain>
     <username>gateway</username>
