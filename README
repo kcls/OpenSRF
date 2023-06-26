@@ -273,7 +273,10 @@ cp redis-accounts.txt.example redis-accounts.txt
 ---------------------------------------------------------------------------
 +
   2. Edit the `SYSCONFDIR/opensrf_core.xml` file to update the four username
-     / password pairs to match the Redis user accounts in `SYSCONFDIR/redis-accounts.txt`:
+     / password pairs to match the Redis user accounts in `SYSCONFDIR/redis-accounts.txt`.
+     (Passwords in redis-accounts.txt are locally-genreated UUID values
+     in lines that look like: ACL SETUSER opensrf on >456fc340-beba-4489-9070-0d6b49e9952b.
+     The password here would be `456fc340-beba-4489-9070-0d6b49e9952b`):
 
     a. `<config><opensrf>` = use the private Redis `opensrf` user
     b. `<config><gateway>` = use the public Redis `gateway` user
