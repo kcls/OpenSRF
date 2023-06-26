@@ -336,7 +336,7 @@ if test "x$OSRF_INSTALL_CORE" = "xtrue"; then
 	#------------------------------------
 
 	AC_CONFIG_FILES([doc/dokuwiki-doc-stubber.pl
-			 examples/redis-accounts.example.txt
+			 examples/redis-accounts.txt.example
 			 examples/math_bench.pl
 			 examples/multisession-test.pl
 			 src/c-apps/Makefile

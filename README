@@ -269,7 +269,7 @@ Updating the OpenSRF configuration files
 cd SYSCONFDIR
 cp opensrf_core.xml.example opensrf_core.xml
 cp opensrf.xml.example opensrf.xml
-cp redis-accounts.example.txt redis-accounts.txt
+cp redis-accounts.txt.example redis-accounts.txt
 ---------------------------------------------------------------------------
 +
   2. Edit the `SYSCONFDIR/opensrf_core.xml` file to update the four username
