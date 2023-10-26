@@ -611,6 +611,39 @@ sub load_settings {
         $parser->get_server_config($conf->env->hostname);
 }
 
+# Try to login to Redis with the default account on each router domain.
+# If any attempts fail, assume Redis has been restarted and reset the
+# message bus to apply all accounts + passwords.
+sub check_default_bus_accounts {
+    OpenSRF::Utils::Config->load(config_file => $opt_config);
+    my $conf = OpenSRF::Utils::Config->current;
+
+    my $routers = $conf->bootstrap->routers;
+
+    my $bus_pass = `grep 'ACL SETUSER default on >' $opt_bus_accounts | cut -d'>' -f2`;
+
+    chomp($bus_pass);
+
+    die "No password for Redis 'default' account found in $opt_bus_accounts\n"
+        unless $bus_pass;
+
+    # Redis prefers the password be passed via ENV.
+    $ENV{REDISCLI_AUTH} = $bus_pass;
+
+    for my $router (@{$conf->bootstrap->routers}) {
+        my $domain = ref $router ? $router->{domain} : $router;
+        my $port = $conf->bootstrap->port;
+
+        my $login = `echo "exit" | redis-cli -h $domain -p $port 2>&1`;
+
+        if ($login =~ /AUTH failed/) {
+            msg("Auto-resetting bus accounts");
+            do_reset_message_bus();
+            return;
+        }
+    }
+}
+
 # Clear and reset permissions on the bus'es linked to our domains.
 sub do_reset_message_bus {
 
@@ -817,7 +850,17 @@ HELP
 exit;
 }
 
-do_reset_message_bus() if $opt_reset_message_bus;
+if ($opt_reset_message_bus) {
+    do_reset_message_bus();
+} elsif (
+    $opt_start ||
+    $opt_start_all ||
+    $opt_start_services ||
+    $opt_restart ||
+    $opt_restart_all ||
+    $opt_restart_services) {
+    check_default_bus_accounts();
+}
 
 # we do not verify services for stop/signal actions, since those may
 # legitimately be used against services not (or no longer) configured
