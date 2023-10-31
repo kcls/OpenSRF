@@ -513,7 +513,7 @@ sub register_routers {
 
     my $conf = OpenSRF::Utils::Config->current;
     my $routers = $conf->bootstrap->routers;
-    my $router_name = $conf->bootstrap->router_name;
+    my $router_name = $conf->bootstrap->router_name || 'router';
     my @targets;
 
     for my $router (@$routers) {
@@ -528,11 +528,12 @@ sub register_routers {
 
                 my $name = $router->{name};
                 my $domain = $router->{domain};
-                push(@targets, "opensrf:router:$domain");
+                push(@targets, "opensrf:router:$router_name:$domain");
             }
 
         } else {
-            push(@targets, "opensrf:router:$router");
+            # $router here == $domain
+            push(@targets, "opensrf:router:$router_name:$router");
         }
     }
 
