@@ -287,8 +287,10 @@ transport_message* client_recv_stream(transport_client* client, int timeout, con
 
     transport_con_msg_free(con_msg);
 
-    osrfLogInternal(OSRF_LOG_MARK, 
-        "client_recv() read response for thread %s", msg->thread);
+    if (msg) { // Can be NULL if the con_msg->msg_json is invalid.
+        osrfLogInternal(OSRF_LOG_MARK, 
+            "client_recv() read response for thread %s", msg->thread);
+    }
 
 	return msg;
 }
