@@ -416,9 +416,9 @@ static void osrfHandleRegister(
     }
 
     bool allowed = osrfStringArrayContains(router->trusted_servers, domain);
+    free(domain);
 
     if (!allowed) {
-        free(domain);
         osrfLogError(OSRF_LOG_MARK, 
             "Sending domain is not allowed on this router: %s", sender);
         return;
